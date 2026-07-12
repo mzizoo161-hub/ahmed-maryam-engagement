@@ -1,28 +1,46 @@
 "use client";
 
-import { createElement, useEffect, useRef, useState } from "react";
+import {
+  createElement,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 type RingSceneProps = {
   onClick?: () => void;
 };
 
-type ModelViewerElement = HTMLElement & {
-  cameraOrbit?: string;
+type ModelViewerElement = HTMLElement;
+
+type PointerPosition = {
+  x: number;
+  y: number;
 };
 
-export default function RingScene({ onClick }: RingSceneProps) {
+export default function RingScene({
+  onClick,
+}: RingSceneProps) {
   const modelRef = useRef<ModelViewerElement | null>(null);
 
   const [viewerReady, setViewerReady] = useState(false);
   const [modelLoaded, setModelLoaded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-  const pointerStart = useRef({
+  const pointerStart = useRef<PointerPosition>({
     x: 0,
     y: 0,
   });
 
-  const wasDragged = useRef(false);
   const resumeTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    const mobile =
+      window.innerWidth < 768 ||
+      window.matchMedia("(pointer: coarse)").matches;
+
+    setIsMobile(mobile);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -34,7 +52,10 @@ export default function RingScene({ onClick }: RingSceneProps) {
         }
       })
       .catch((error) => {
-        console.error("Could not load the 3D ring viewer:", error);
+        console.error(
+          "Could not load the 3D ring viewer:",
+          error
+        );
       });
 
     return () => {
@@ -70,16 +91,19 @@ export default function RingScene({ onClick }: RingSceneProps) {
       y: event.clientY,
     };
 
-    wasDragged.current = false;
-
     const viewer = modelRef.current;
 
     if (viewer) {
       viewer.removeAttribute("auto-rotate");
     }
+
+    if (resumeTimer.current !== null) {
+      window.clearTimeout(resumeTimer.current);
+      resumeTimer.current = null;
+    }
   };
 
-  const handlePointerMove = (
+  const handlePointerUp = (
     event: React.PointerEvent<HTMLElement>
   ) => {
     const distanceX = Math.abs(
@@ -90,13 +114,9 @@ export default function RingScene({ onClick }: RingSceneProps) {
       event.clientY - pointerStart.current.y
     );
 
-    if (distanceX > 6 || distanceY > 6) {
-      wasDragged.current = true;
-    }
-  };
+    const wasTap = distanceX < 8 && distanceY < 8;
 
-  const handlePointerUp = () => {
-    if (!wasDragged.current) {
+    if (wasTap) {
       onClick?.();
       return;
     }
@@ -105,13 +125,19 @@ export default function RingScene({ onClick }: RingSceneProps) {
 
     if (!viewer) return;
 
-    if (resumeTimer.current !== null) {
-      window.clearTimeout(resumeTimer.current);
-    }
+    resumeTimer.current = window.setTimeout(() => {
+      viewer.setAttribute("auto-rotate", "");
+    }, 1800);
+  };
+
+  const handlePointerCancel = () => {
+    const viewer = modelRef.current;
+
+    if (!viewer) return;
 
     resumeTimer.current = window.setTimeout(() => {
       viewer.setAttribute("auto-rotate", "");
-    }, 1200);
+    }, 1800);
   };
 
   const modelViewer = viewerReady
@@ -127,8 +153,10 @@ export default function RingScene({ onClick }: RingSceneProps) {
 
         "camera-controls": true,
         "auto-rotate": true,
-        "auto-rotate-delay": "1400",
-        "rotation-per-second": "7deg",
+        "auto-rotate-delay": isMobile ? "1800" : "1200",
+        "rotation-per-second": isMobile
+          ? "4deg"
+          : "7deg",
 
         "interaction-prompt": "none",
         "touch-action": "none",
@@ -141,7 +169,7 @@ export default function RingScene({ onClick }: RingSceneProps) {
         "min-field-of-view": "24deg",
         "max-field-of-view": "38deg",
 
-        exposure: "1.18",
+        exposure: "1.16",
         "environment-image": "neutral",
         "shadow-intensity": "0",
 
@@ -149,11 +177,8 @@ export default function RingScene({ onClick }: RingSceneProps) {
         reveal: "auto",
 
         onPointerDown: handlePointerDown,
-        onPointerMove: handlePointerMove,
         onPointerUp: handlePointerUp,
-        onPointerCancel: () => {
-          wasDragged.current = true;
-        },
+        onPointerCancel: handlePointerCancel,
 
         style: {
           width: "100%",
@@ -173,16 +198,16 @@ export default function RingScene({ onClick }: RingSceneProps) {
 
   return (
     <div
-      className="relative mx-auto h-[340px] w-full md:h-[500px]"
+      className="relative mx-auto h-[330px] w-full md:h-[500px]"
       style={{
         background:
-          "radial-gradient(circle at center, rgba(227,190,112,0.18), transparent 62%)",
-        contain: "layout paint",
+          "radial-gradient(circle at center, rgba(227,190,112,0.16), transparent 62%)",
+        contain: "layout paint size",
       }}
     >
       {!modelLoaded && (
         <div className="absolute inset-0 z-10 flex items-center justify-center">
-          <div className="h-9 w-9 animate-spin rounded-full border-2 border-[#c7a16d]/30 border-t-[#8d6945]" />
+          <div className="h-8 w-8 rounded-full border-2 border-[#c7a16d]/30 border-t-[#8d6945]" />
         </div>
       )}
 
