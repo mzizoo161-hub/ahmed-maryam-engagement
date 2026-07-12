@@ -1,426 +1,185 @@
 "use client";
 
-import { Canvas, ThreeEvent, useFrame } from "@react-three/fiber";
-import {
-  Environment,
-  PerformanceMonitor,
-  useGLTF,
-} from "@react-three/drei";
-import {
-  Suspense,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import * as THREE from "three";
+import { motion } from "framer-motion";
+import { createElement, useEffect, useRef, useState } from "react";
 
 type RingSceneProps = {
   onClick?: () => void;
 };
 
-type DragState = {
-  pointerId: number | null;
-  startX: number;
-  startY: number;
-  previousX: number;
-  previousY: number;
-  totalMovement: number;
+type ModelViewerElement = HTMLElement & {
+  cameraOrbit: string;
+  fieldOfView: string;
+  resetTurntableRotation?: () => void;
 };
 
-function RealRing({ onClick }: RingSceneProps) {
-  const ringRef = useRef<THREE.Group>(null);
-  const { scene } = useGLTF("/models/ring.glb");
+export default function RingScene({ onClick }: RingSceneProps) {
+  const modelRef = useRef<ModelViewerElement | null>(null);
 
-  const isDragging = useRef(false);
+  const [viewerReady, setViewerReady] = useState(false);
+  const [modelLoaded, setModelLoaded] = useState(false);
 
-  const dragState = useRef<DragState>({
-    pointerId: null,
-    startX: 0,
-    startY: 0,
-    previousX: 0,
-    previousY: 0,
-    totalMovement: 0,
-  });
+  useEffect(() => {
+    let active = true;
 
-  const targetRotation = useRef({
-    x: Math.PI / 2,
-    y: 0,
-  });
-
-  const preparedScene = useMemo(() => {
-    const clonedScene = scene.clone(true);
-
-    clonedScene.traverse((object) => {
-      if (!(object instanceof THREE.Mesh)) return;
-
-      // Shadows are intentionally disabled because the ring is already
-      // detailed and live shadows are expensive on mobile devices.
-      object.castShadow = false;
-      object.receiveShadow = false;
-
-      const materials = Array.isArray(object.material)
-        ? object.material
-        : [object.material];
-
-      materials.forEach((material) => {
-        if (
-          material instanceof THREE.MeshStandardMaterial ||
-          material instanceof THREE.MeshPhysicalMaterial
-        ) {
-          // Clone each material so we do not mutate the original GLB.
-          const clonedMaterial = material.clone();
-
-          clonedMaterial.envMapIntensity = 2.5;
-          clonedMaterial.roughness = Math.min(
-            clonedMaterial.roughness,
-            0.24
-          );
-          clonedMaterial.needsUpdate = true;
-
-          object.material = clonedMaterial;
+    import("@google/model-viewer")
+      .then(() => {
+        if (active) {
+          setViewerReady(true);
         }
+      })
+      .catch((error) => {
+        console.error("Could not load the 3D ring viewer:", error);
       });
-    });
 
-    clonedScene.updateMatrixWorld(true);
-
-    // Centre the model.
-    const box = new THREE.Box3().setFromObject(clonedScene);
-    const centre = new THREE.Vector3();
-    const size = new THREE.Vector3();
-
-    box.getCenter(centre);
-    box.getSize(size);
-
-    clonedScene.position.sub(centre);
-
-    // Scale it consistently regardless of the model's original units.
-    const largestDimension = Math.max(size.x, size.y, size.z);
-    const scale =
-      largestDimension > 0 ? 2.1 / largestDimension : 1;
-
-    clonedScene.scale.setScalar(scale);
-
-    return clonedScene;
-  }, [scene]);
-
-  useEffect(() => {
     return () => {
-      document.body.style.cursor = "default";
+      active = false;
     };
   }, []);
 
-  useFrame((state, delta) => {
-    if (!ringRef.current) return;
-
-    const time = state.clock.elapsedTime;
-
-    // Continue slow automatic rotation only when the guest is not dragging.
-    if (!isDragging.current) {
-      targetRotation.current.y += delta * 0.28;
-    }
-
-    // Smoothly move toward the desired rotation.
-    ringRef.current.rotation.x = THREE.MathUtils.damp(
-      ringRef.current.rotation.x,
-      targetRotation.current.x,
-      10,
-      delta
-    );
-
-    ringRef.current.rotation.y = THREE.MathUtils.damp(
-      ringRef.current.rotation.y,
-      targetRotation.current.y,
-      10,
-      delta
-    );
-
-    // Very small floating movement.
-    ringRef.current.position.y =
-      -0.28 + Math.sin(time * 0.8) * 0.045;
-  });
-
-  const handlePointerDown = (
-    event: ThreeEvent<PointerEvent>
-  ) => {
-    event.stopPropagation();
-
-    isDragging.current = true;
-
-    dragState.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      previousX: event.clientX,
-      previousY: event.clientY,
-      totalMovement: 0,
-    };
-
-    // Keep receiving movement events even if the finger moves
-    // slightly outside the ring geometry.
-    event.target.setPointerCapture(event.pointerId);
-
-    document.body.style.cursor = "grabbing";
-  };
-
-  const handlePointerMove = (
-    event: ThreeEvent<PointerEvent>
-  ) => {
-    if (
-      !isDragging.current ||
-      dragState.current.pointerId !== event.pointerId
-    ) {
-      return;
-    }
-
-    event.stopPropagation();
-
-    const deltaX =
-      event.clientX - dragState.current.previousX;
-
-    const deltaY =
-      event.clientY - dragState.current.previousY;
-
-    dragState.current.previousX = event.clientX;
-    dragState.current.previousY = event.clientY;
-
-    dragState.current.totalMovement +=
-      Math.abs(deltaX) + Math.abs(deltaY);
-
-    // Horizontal finger movement rotates left/right.
-    targetRotation.current.y += deltaX * 0.012;
-
-    // Vertical finger movement flips the ring forward/backward.
-    targetRotation.current.x += deltaY * 0.012;
-  };
-
-  const handlePointerUp = (
-    event: ThreeEvent<PointerEvent>
-  ) => {
-    if (
-      dragState.current.pointerId !== event.pointerId
-    ) {
-      return;
-    }
-
-    event.stopPropagation();
-
-    event.target.releasePointerCapture(event.pointerId);
-
-    const wasTap =
-      dragState.current.totalMovement < 8;
-
-    isDragging.current = false;
-    dragState.current.pointerId = null;
-
-    document.body.style.cursor = "grab";
-
-    // A short tap opens the invitation.
-    // A drag only rotates the ring.
-    if (wasTap) {
-      onClick?.();
-    }
-  };
-
-  const handlePointerCancel = (
-    event: ThreeEvent<PointerEvent>
-  ) => {
-    isDragging.current = false;
-    dragState.current.pointerId = null;
-
-    try {
-      event.target.releasePointerCapture(event.pointerId);
-    } catch {
-      // Pointer may already have been released.
-    }
-
-    document.body.style.cursor = "default";
-  };
-
-  return (
-    <group
-      ref={ringRef}
-      position={[0, -0.28, 0]}
-      rotation={[Math.PI / 2, 0, 0]}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerCancel}
-      onPointerEnter={() => {
-        document.body.style.cursor = "grab";
-      }}
-      onPointerLeave={() => {
-        if (!isDragging.current) {
-          document.body.style.cursor = "default";
-        }
-      }}
-    >
-      <primitive object={preparedScene} />
-    </group>
-  );
-}
-
-function LoadingRing() {
-  return (
-    <mesh rotation={[Math.PI / 2, 0, 0]}>
-      <torusGeometry args={[0.7, 0.07, 32, 100]} />
-
-      <meshStandardMaterial
-        color="#d4af37"
-        metalness={1}
-        roughness={0.18}
-      />
-    </mesh>
-  );
-}
-
-export default function RingScene({
-  onClick,
-}: RingSceneProps) {
-  const [isMobile, setIsMobile] = useState(false);
-  const [pixelRatio, setPixelRatio] = useState(2);
-
   useEffect(() => {
-    const detectDevice = () => {
-      const mobile =
-        window.innerWidth < 768 ||
-        window.matchMedia("(pointer: coarse)").matches;
+    const model = modelRef.current;
 
-      setIsMobile(mobile);
+    if (!model || !viewerReady) return;
 
-      // Start sharply, but never exceed DPR 2.
-      // DPR 3 or 4 is unnecessarily expensive for WebGL.
-      setPixelRatio(
-        Math.min(window.devicePixelRatio || 1, 2)
-      );
+    const handleLoad = () => {
+      setModelLoaded(true);
     };
 
-    detectDevice();
-
-    window.addEventListener("resize", detectDevice);
+    model.addEventListener("load", handleLoad);
 
     return () => {
-      window.removeEventListener("resize", detectDevice);
+      model.removeEventListener("load", handleLoad);
     };
-  }, []);
+  }, [viewerReady]);
+
+  const resetRing = () => {
+    const model = modelRef.current;
+
+    if (!model) return;
+
+    model.cameraOrbit = "0deg 72deg 105%";
+    model.fieldOfView = "30deg";
+    model.resetTurntableRotation?.();
+  };
+
+  const modelViewer = viewerReady
+    ? createElement("model-viewer", {
+        ref: (element: HTMLElement | null) => {
+          modelRef.current = element as ModelViewerElement | null;
+        },
+
+        src: "/models/ring.glb",
+        alt: "Interactive golden diamond engagement ring",
+
+        "camera-controls": true,
+        "auto-rotate": true,
+        "auto-rotate-delay": "700",
+        "rotation-per-second": "14deg",
+
+        "interaction-prompt": "none",
+        "touch-action": "pan-y",
+
+        "camera-orbit": "0deg 72deg 105%",
+        "min-camera-orbit": "auto 5deg 65%",
+        "max-camera-orbit": "auto 175deg 180%",
+
+        "field-of-view": "30deg",
+        "min-field-of-view": "20deg",
+        "max-field-of-view": "45deg",
+
+        exposure: "1.2",
+        "environment-image": "neutral",
+
+        "shadow-intensity": "0",
+        loading: "eager",
+        reveal: "auto",
+
+        style: {
+          width: "100%",
+          height: "100%",
+          display: "block",
+          background: "transparent",
+          touchAction: "none",
+          userSelect: "none",
+          WebkitUserSelect: "none",
+          cursor: "grab",
+        },
+      })
+    : null;
 
   return (
-    <div
-      className="
-        relative
-        h-[350px]
-        w-full
-        overflow-hidden
-        touch-none
-        select-none
-        md:h-[500px]
-      "
-      style={{
-        touchAction: "none",
-        WebkitUserSelect: "none",
-        userSelect: "none",
-      }}
-    >
-      <div
-        className="
-          pointer-events-none
-          absolute
-          inset-0
-          bg-[radial-gradient(circle_at_center,rgba(247,217,145,0.38),transparent_60%)]
-          blur-2xl
-        "
-      />
+    <div className="relative mx-auto w-full max-w-3xl">
+      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[270px] w-[270px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#e3be70]/30 blur-[85px] md:h-[390px] md:w-[390px]" />
 
-      <Canvas
-        dpr={pixelRatio}
-        camera={{
-          position: [0, 0.05, 5.2],
-          fov: 36,
+      <motion.div
+        className="relative h-[350px] w-full overflow-hidden rounded-[2rem] border border-white/35 bg-white/10 shadow-[0_25px_70px_rgba(88,61,37,0.13)] md:h-[500px]"
+        initial={{
+          opacity: 0,
+          scale: 0.92,
+          y: 25,
         }}
-        gl={{
-          antialias: true,
-          alpha: true,
-          powerPreference: "high-performance",
-          toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.12,
+        animate={{
+          opacity: 1,
+          scale: 1,
+          y: 0,
         }}
-        performance={{
-          min: 0.75,
+        transition={{
+          duration: 1,
+          ease: [0.22, 1, 0.36, 1],
         }}
       >
-        <PerformanceMonitor
-          // Do not destroy the image quality.
-          // Only reduce DPR from 2 to 1.6 if performance is genuinely poor.
-          onDecline={() => {
-            setPixelRatio((current) =>
-              Math.max(1.6, current - 0.2)
-            );
+        {!modelLoaded && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#f6f0e7]/75 backdrop-blur-sm">
+            <div className="text-center">
+              <motion.div
+                className="mx-auto h-11 w-11 rounded-full border-2 border-[#c7a16d]/35 border-t-[#8d6945]"
+                animate={{ rotate: 360 }}
+                transition={{
+                  duration: 1,
+                  repeat: Infinity,
+                  ease: "linear",
+                }}
+              />
+
+              <p className="mt-5 text-[10px] uppercase tracking-[0.3em] text-[#8b7159]">
+                Preparing the ring
+              </p>
+            </div>
+          </div>
+        )}
+
+        {modelViewer}
+      </motion.div>
+
+      <div className="relative z-30 mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <motion.button
+          type="button"
+          onClick={resetRing}
+          className="rounded-full border border-[#aa8966]/45 bg-white/45 px-6 py-3 text-[10px] uppercase tracking-[0.25em] text-[#765b45] shadow-md backdrop-blur-xl"
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.96 }}
+        >
+          Reset Ring
+        </motion.button>
+
+        <motion.button
+          type="button"
+          onClick={onClick}
+          className="rounded-full bg-[#7d6249] px-8 py-3 text-[10px] uppercase tracking-[0.25em] text-white shadow-[0_14px_32px_rgba(88,61,37,0.25)]"
+          whileHover={{
+            scale: 1.05,
+            boxShadow: "0 20px 42px rgba(88,61,37,0.32)",
           }}
-          onIncline={() => {
-            const maximum = Math.min(
-              window.devicePixelRatio || 1,
-              2
-            );
+          whileTap={{ scale: 0.96 }}
+        >
+          Open Invitation
+        </motion.button>
+      </div>
 
-            setPixelRatio((current) =>
-              Math.min(maximum, current + 0.1)
-            );
-          }}
-        />
-
-        <ambientLight intensity={0.85} />
-
-        <hemisphereLight
-          args={["#fff8e8", "#4b3425", 1.15]}
-        />
-
-        <directionalLight
-          position={[4, 6, 5]}
-          intensity={3.35}
-        />
-
-        <directionalLight
-          position={[-4, 2, 3]}
-          intensity={1.45}
-          color="#dce8ff"
-        />
-
-        <pointLight
-          position={[2.5, 1.2, 3]}
-          intensity={1.45}
-          color="#ffe7ae"
-        />
-
-        <Suspense fallback={<LoadingRing />}>
-          <RealRing onClick={onClick} />
-        </Suspense>
-
-        <Environment
-          preset="studio"
-          environmentIntensity={isMobile ? 0.95 : 1.1}
-        />
-      </Canvas>
-
-      <p
-        className="
-          pointer-events-none
-          absolute
-          bottom-4
-          left-1/2
-          -translate-x-1/2
-          whitespace-nowrap
-          text-[10px]
-          uppercase
-          tracking-[0.28em]
-          text-[#8b7159]
-          md:text-xs
-        "
-      >
-        Drag to rotate • Tap to open
+      <p className="mt-4 text-center text-[9px] uppercase tracking-[0.25em] text-[#92775f] md:text-[10px]">
+        Drag in any direction • Pinch to zoom
       </p>
     </div>
   );
 }
-
-useGLTF.preload("/models/ring.glb");
