@@ -325,7 +325,7 @@ export default function Hero() {
                 }}
               >
                 <Image
-                  src="/images/invitation.JPG"
+                  src="/images/invitation.jpg"
                   alt="Ahmed and Maryam engagement invitation"
                   width={1051}
                   height={1479}
@@ -335,7 +335,7 @@ export default function Hero() {
               </motion.div>
 
               <motion.a
-                href="https://maps.app.goo.gl/scEgdihmi3E9DPvY8?g_st=iw"
+                href="https://maps.app.goo.gl/toH9vPCF7joQmhwc7?g_st=iw"
                 target="_blank"
                 rel="noreferrer"
                 className="mt-8 inline-flex items-center justify-center rounded-full bg-[#7d6249] px-9 py-4 text-white shadow-lg"
