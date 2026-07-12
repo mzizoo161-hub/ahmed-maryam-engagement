@@ -163,7 +163,7 @@ export default function Hero() {
                 filter: "blur(12px)",
               }}
               transition={{
-                duration: 0.9,
+                duration: 0.6,
                 ease: [0.22, 1, 0.36, 1],
               }}
             >
@@ -172,7 +172,7 @@ export default function Hero() {
                 initial={{ opacity: 0, scale: 0.82 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{
-                  duration: 1.2,
+                  duration: 0.75,
                   ease: [0.22, 1, 0.36, 1],
                 }}
               >
@@ -181,7 +181,7 @@ export default function Hero() {
                   className="mx-5 inline-block text-4xl text-[#b58b54] md:mx-8 md:text-6xl"
                   initial={{ opacity: 0, rotate: -15 }}
                   animate={{ opacity: 1, rotate: 0 }}
-                  transition={{ delay: 0.55, duration: 0.8 }}
+                  transition={{ delay: 0.35, duration: 0.45, }}
                 >
                   &
                 </motion.span>
@@ -192,7 +192,7 @@ export default function Hero() {
                 className="mt-7 text-xs uppercase tracking-[0.42em] text-[#9b8066]"
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.9, duration: 0.8 }}
+                transition={{ delay: 0.45, duration: 0.45 }}
               >
                 Ahmed & Maryam
               </motion.p>
@@ -219,7 +219,7 @@ export default function Hero() {
                 filter: "blur(14px)",
               }}
               transition={{
-                duration: 1,
+                duration: 0.65,
                 ease: [0.22, 1, 0.36, 1],
               }}
             >
@@ -227,7 +227,7 @@ export default function Hero() {
                 className="mb-4 text-xs uppercase tracking-[0.4em] text-[#9b8066] md:text-sm"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.8 }}
+                transition={{ delay: 0.1, duration: 0.45 }}
               >
                 You are invited
               </motion.p>
@@ -236,7 +236,7 @@ export default function Hero() {
                 className="font-serif text-5xl leading-tight md:text-8xl"
                 initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.9 }}
+                transition={{ delay: 0.15, duration: 0.55 }}
               >
                 Ahmed & Maryam
               </motion.h1>
@@ -245,7 +245,7 @@ export default function Hero() {
                 className="mt-5 text-lg text-[#806c5b] md:text-2xl"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.45, duration: 0.8 }}
+                transition={{ delay: 0.25, duration: 0.45 }}
               >
                 Engagement Ceremony
               </motion.p>
@@ -254,7 +254,7 @@ export default function Hero() {
                 className="mt-2 text-base text-[#806c5b] md:text-lg"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.55, duration: 0.8 }}
+                transition={{ delay: 0.3, duration: 0.45 }}
               >
                 8 August 2026 • 8:00 PM
               </motion.p>
@@ -264,8 +264,8 @@ export default function Hero() {
                 initial={{ opacity: 0, scale: 0.88 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{
-                  delay: 0.55,
-                  duration: 1,
+                  delay: 0.3,
+                  duration: 0.6,
                   ease: [0.22, 1, 0.36, 1],
                 }}
               >
@@ -298,7 +298,7 @@ export default function Hero() {
                 scale: 0.9,
               }}
               transition={{
-                duration: 1.25,
+                duration: 0.75,
                 ease: [0.22, 1, 0.36, 1],
               }}
               style={{ transformPerspective: 1400 }}
@@ -307,7 +307,7 @@ export default function Hero() {
                 className="mb-6 text-xs uppercase tracking-[0.4em] text-[#9b8066]"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.65, duration: 0.8 }}
+                transition={{ delay: 0.3, duration: 0.45}}
               >
                 Together with their families
               </motion.p>
@@ -341,7 +341,7 @@ export default function Hero() {
                 className="mt-8 inline-flex items-center justify-center rounded-full bg-[#7d6249] px-9 py-4 text-white shadow-lg"
                 initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8, duration: 0.7 }}
+                transition={{ delay: 0.4, duration: 0.45 }}
                 whileHover={{
                   scale: 1.05,
                   boxShadow: "0 16px 35px rgba(90, 62, 38, 0.28)",
@@ -357,7 +357,7 @@ export default function Hero() {
                 className="mt-5 block w-full text-xs uppercase tracking-[0.26em] text-[#8b7159] transition hover:text-[#5f4736]"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 1, duration: 0.7 }}
+                transition={{ delay: 0.45, duration: 0.45 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
