@@ -325,7 +325,7 @@ export default function Hero() {
                 }}
               >
                 <Image
-                  src="/images/invitation.jpg"
+                  src="/images/invitation.JPG"
                   alt="Ahmed and Maryam engagement invitation"
                   width={1051}
                   height={1479}
