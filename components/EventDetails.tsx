@@ -208,7 +208,7 @@ export default function EventDetails() {
           </p>
 
           <motion.a
-            href="https://maps.app.goo.gl/scEgdihmi3E9DPvY8?g_st=iw"
+            href="https://maps.app.goo.gl/toH9vPCF7joQmhwc7?g_st=iw"
             target="_blank"
             rel="noreferrer"
             className="mt-8 inline-flex items-center gap-3 rounded-full bg-[#7d6249] px-9 py-4 text-white shadow-[0_15px_35px_rgba(88,61,37,0.24)]"
