@@ -21,15 +21,23 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://ahmed-maryam-engagement.vercel.app"),
+
   title: "Ahmed & Maryam | Engagement Invitation",
+
   description:
     "You are warmly invited to celebrate the engagement of Ahmed and Maryam on 8 August 2026.",
+
   applicationName: "Ahmed & Maryam Engagement",
+
   openGraph: {
     title: "Ahmed & Maryam | Engagement Invitation",
+
     description:
       "Join us on 8 August 2026 at 8:00 PM at Latoya Hall.",
+
     type: "website",
+
     images: [
       {
         url: "/images/invitation.JPG",
@@ -49,9 +57,18 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${cormorant.variable} ${montserrat.variable}`}
     >
-      <body>{children}</body>
+      <body
+        className="
+          overflow-x-hidden
+          bg-[#f6f0e7]
+          antialiased
+        "
+      >
+        {children}
+      </body>
     </html>
   );
 }
