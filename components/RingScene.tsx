@@ -3,12 +3,10 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import {
   Environment,
-  Float,
-  OrbitControls,
-  Sparkles,
+  PerformanceMonitor,
   useGLTF,
 } from "@react-three/drei";
-import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 type RingSceneProps = {
@@ -25,20 +23,19 @@ function RealRing({ onClick }: RingSceneProps) {
     clonedScene.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) return;
 
-      object.castShadow = true;
-      object.receiveShadow = true;
+      object.castShadow = false;
+      object.receiveShadow = false;
 
-      if (Array.isArray(object.material)) {
-        object.material.forEach((material) => {
-          if (material instanceof THREE.MeshStandardMaterial) {
-            material.envMapIntensity = 2.5;
-            material.needsUpdate = true;
-          }
-        });
-      } else if (object.material instanceof THREE.MeshStandardMaterial) {
-        object.material.envMapIntensity = 2.5;
-        object.material.needsUpdate = true;
-      }
+      const materials = Array.isArray(object.material)
+        ? object.material
+        : [object.material];
+
+      materials.forEach((material) => {
+        if (material instanceof THREE.MeshStandardMaterial) {
+          material.envMapIntensity = 1.8;
+          material.needsUpdate = true;
+        }
+      });
     });
 
     clonedScene.updateMatrixWorld(true);
@@ -72,16 +69,13 @@ function RealRing({ onClick }: RingSceneProps) {
 
     const time = state.clock.elapsedTime;
 
-    ringRef.current.rotation.y += delta * 0.28;
-
+    ringRef.current.rotation.y += delta * 0.24;
     ringRef.current.rotation.x =
-      -0.12 + Math.sin(time * 0.65) * 0.035;
-
+      -0.12 + Math.sin(time * 0.65) * 0.03;
     ringRef.current.rotation.z =
-      Math.sin(time * 0.45) * 0.02;
-
+      Math.sin(time * 0.45) * 0.018;
     ringRef.current.position.y =
-      -0.28 + Math.sin(time * 0.8) * 0.055;
+      -0.28 + Math.sin(time * 0.8) * 0.045;
   });
 
   return (
@@ -108,97 +102,93 @@ function RealRing({ onClick }: RingSceneProps) {
 function LoadingRing() {
   return (
     <mesh rotation={[Math.PI / 2, 0, 0]}>
-      <torusGeometry args={[0.7, 0.07, 32, 120]} />
+      <torusGeometry args={[0.7, 0.07, 24, 80]} />
 
       <meshStandardMaterial
         color="#d4af37"
         metalness={1}
-        roughness={0.18}
+        roughness={0.2}
       />
     </mesh>
   );
 }
 
 export default function RingScene({ onClick }: RingSceneProps) {
+  const [isMobile, setIsMobile] = useState(true);
+  const [dpr, setDpr] = useState(1);
+
+  useEffect(() => {
+    const updateDevice = () => {
+      const mobile =
+        window.innerWidth < 768 ||
+        window.matchMedia("(pointer: coarse)").matches;
+
+      setIsMobile(mobile);
+      setDpr(mobile ? 1 : Math.min(window.devicePixelRatio, 1.5));
+    };
+
+    updateDevice();
+    window.addEventListener("resize", updateDevice);
+
+    return () => {
+      window.removeEventListener("resize", updateDevice);
+    };
+  }, []);
+
   return (
-    <div className="relative h-[360px] w-full overflow-hidden md:h-[500px]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(247,217,145,0.38),transparent_60%)] blur-2xl" />
+    <div className="relative h-[320px] w-full overflow-hidden md:h-[500px]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(247,217,145,0.32),transparent_60%)] blur-2xl" />
 
       <Canvas
-        shadows
-        dpr={[1, 2]}
+        dpr={dpr}
         camera={{
           position: [0, 0.05, 5.2],
           fov: 36,
         }}
         gl={{
-          antialias: true,
+          antialias: !isMobile,
           alpha: true,
-          toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.12,
           powerPreference: "high-performance",
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 1.08,
+        }}
+        performance={{
+          min: 0.5,
         }}
       >
-        <ambientLight intensity={0.8} />
+        <PerformanceMonitor
+          onDecline={() => setDpr(0.8)}
+          onIncline={() =>
+            setDpr(isMobile ? 1 : 1.5)
+          }
+        />
+
+        <ambientLight intensity={0.9} />
 
         <hemisphereLight
-          args={["#fff8e8", "#4b3425", 1.2]}
+          args={["#fff8e8", "#4b3425", 1]}
         />
 
         <directionalLight
-          position={[4, 6, 5]}
-          intensity={3.5}
-          castShadow
+          position={[4, 5, 5]}
+          intensity={2.8}
         />
 
-        <directionalLight
-          position={[-4, 2, 3]}
-          intensity={1.7}
-          color="#dce8ff"
-        />
-
-        <spotLight
-          position={[0, 5, 4]}
-          intensity={4.2}
-          angle={0.38}
-          penumbra={1}
-          castShadow
-        />
-
-        <pointLight
-          position={[2.5, 1.2, 3]}
-          intensity={1.7}
-          color="#ffe7ae"
-        />
+        {!isMobile && (
+          <pointLight
+            position={[2.5, 1.2, 3]}
+            intensity={1.2}
+            color="#ffe7ae"
+          />
+        )}
 
         <Suspense fallback={<LoadingRing />}>
-          <Float
-            speed={1.05}
-            rotationIntensity={0.03}
-            floatIntensity={0.08}
-          >
-            <RealRing onClick={onClick} />
-          </Float>
+          <RealRing onClick={onClick} />
         </Suspense>
 
-        <Sparkles
-          count={18}
-          scale={[3, 2.5, 2]}
-          size={1.7}
-          speed={0.22}
-          opacity={0.45}
-          color="#e4be67"
-        />
-
-        <Environment preset="studio" />
-
-        <OrbitControls
-          enablePan={false}
-          enableZoom={false}
-          enableDamping
-          dampingFactor={0.08}
-          minPolarAngle={Math.PI / 2.8}
-          maxPolarAngle={Math.PI / 1.7}
+        <Environment
+          preset="studio"
+          environmentIntensity={isMobile ? 0.65 : 1}
         />
       </Canvas>
 
